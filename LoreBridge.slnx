@@ -1,1 +1,9 @@
-<Solution />
+<Solution>
+  <Project Path="LoreBridge.Application/LoreBridge.Application.csproj" />
+  <Project Path="LoreBridge.Core/LoreBridge.Core.csproj" />
+  <Project Path="LoreBridge.Desktop/LoreBridge.Desktop.csproj" />
+  <Project Path="LoreBridge.Infrastructure/LoreBridge.Infrastructure.csproj" />
+  <Project Path="LoreBridge.McpHost/LoreBridge.McpHost.csproj" />
+  <Project Path="LoreBridge.SharedUi/LoreBridge.SharedUi.csproj" />
+  <Project Path="LoreBridge.Tests/LoreBridge.Tests.csproj" />
+</Solution>

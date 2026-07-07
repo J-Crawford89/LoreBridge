@@ -1,0 +1,19 @@
+﻿<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\LoreBridge.Application\LoreBridge.Application.csproj" />
+    <ProjectReference Include="..\LoreBridge.Core\LoreBridge.Core.csproj" />
+    <ProjectReference Include="..\LoreBridge.Infrastructure\LoreBridge.Infrastructure.csproj" />
+  </ItemGroup>
+
+</Project>
