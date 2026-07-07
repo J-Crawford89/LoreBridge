@@ -1,0 +1,131 @@
+@using LoreBridge.Application.Notes
+@using LoreBridge.Core.Notes
+@inject INoteService NoteService
+
+<h2>Search Notes</h2>
+
+<div>
+    <label for="note-query">Query</label>
+    <input id="note-query" @bind="query" />
+
+    <label for="note-type">Type</label>
+    <input id="note-type" @bind="type" />
+
+    <label for="note-status">Status</label>
+    <input id="note-status" @bind="status" />
+
+    <button type="button" @onclick="SearchAsync" disabled="@isSearching">Search</button>
+</div>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p>@errorMessage</p>
+}
+
+@if (isSearching)
+{
+    <p>Searching...</p>
+}
+else if (hasSearched && results.Count == 0)
+{
+    <p>No matching notes found.</p>
+}
+else if (results.Count > 0)
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Path</th>
+                <th>Snippet</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var result in results)
+            {
+                <tr>
+                    <td>
+                        <button type="button" @onclick="() => SelectNoteAsync(result)">@result.Title</button>
+                    </td>
+                    <td>@result.Type</td>
+                    <td>@result.Status</td>
+                    <td>@result.RelativePath</td>
+                    <td>@result.Snippet</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter]
+    public string WorkspaceId { get; set; } = string.Empty;
+
+    [Parameter]
+    public EventCallback<NoteDetail> OnNoteSelected { get; set; }
+
+    private readonly List<NoteSearchResult> results = [];
+    private string query = string.Empty;
+    private string? status;
+    private string? type;
+    private string? errorMessage;
+    private bool isSearching;
+    private bool hasSearched;
+
+    protected override void OnParametersSet()
+    {
+        results.Clear();
+        errorMessage = null;
+        hasSearched = false;
+    }
+
+    private async Task SearchAsync()
+    {
+        if (string.IsNullOrWhiteSpace(WorkspaceId))
+        {
+            return;
+        }
+
+        isSearching = true;
+        hasSearched = true;
+        errorMessage = null;
+        results.Clear();
+
+        try
+        {
+            var request = new NoteSearchRequest(
+                WorkspaceId,
+                query,
+                string.IsNullOrWhiteSpace(status) ? null : status,
+                string.IsNullOrWhiteSpace(type) ? null : type,
+                Limit: 50);
+
+            var searchResults = await NoteService.SearchAsync(request);
+            results.AddRange(searchResults);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isSearching = false;
+        }
+    }
+
+    private async Task SelectNoteAsync(NoteSearchResult result)
+    {
+        try
+        {
+            errorMessage = null;
+            var note = await NoteService.GetNoteAsync(WorkspaceId, result.NoteId);
+            await OnNoteSelected.InvokeAsync(note);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+    }
+}

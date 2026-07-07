@@ -1,0 +1,85 @@
+@using LoreBridge.Application.Review
+@using LoreBridge.Core.Review
+@inject IReviewService ReviewService
+
+<h2>Review Queue</h2>
+
+<button type="button" @onclick="LoadReviewQueueAsync" disabled="@isLoading">Refresh</button>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p>@errorMessage</p>
+}
+
+@if (isLoading)
+{
+    <p>Loading review queue...</p>
+}
+else if (items.Count == 0)
+{
+    <p>No review items.</p>
+}
+else
+{
+    <table>
+        <thead>
+            <tr>
+                <th>Title</th>
+                <th>Status</th>
+                <th>Source</th>
+                <th>Created</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in items)
+            {
+                <tr>
+                    <td>@item.Title</td>
+                    <td>@item.ReviewStatus</td>
+                    <td>@item.SourceRelativePath</td>
+                    <td>@item.CreatedUtc.ToLocalTime()</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@code {
+    [Parameter]
+    public string WorkspaceId { get; set; } = string.Empty;
+
+    private readonly List<ReviewItem> items = [];
+    private string? errorMessage;
+    private bool isLoading;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await LoadReviewQueueAsync();
+    }
+
+    private async Task LoadReviewQueueAsync()
+    {
+        if (string.IsNullOrWhiteSpace(WorkspaceId))
+        {
+            return;
+        }
+
+        isLoading = true;
+        errorMessage = null;
+        items.Clear();
+
+        try
+        {
+            var reviewItems = await ReviewService.GetReviewQueueAsync(WorkspaceId);
+            items.AddRange(reviewItems);
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

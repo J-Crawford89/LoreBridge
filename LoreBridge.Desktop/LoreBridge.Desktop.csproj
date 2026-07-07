@@ -69,6 +69,7 @@
     <ItemGroup>
         <PackageReference Include="Microsoft.Maui.Controls" Version="10.0.80" />
         <PackageReference Include="Microsoft.AspNetCore.Components.WebView.Maui" Version="10.0.80" />
+        <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.9" />
         <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
     </ItemGroup>
 
@@ -77,6 +78,10 @@
       <ProjectReference Include="..\LoreBridge.Core\LoreBridge.Core.csproj" />
       <ProjectReference Include="..\LoreBridge.Infrastructure\LoreBridge.Infrastructure.csproj" />
       <ProjectReference Include="..\LoreBridge.SharedUi\LoreBridge.SharedUi.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
+      <None Update="appsettings.local.json" CopyToOutputDirectory="PreserveNewest" CopyToPublishDirectory="PreserveNewest" />
     </ItemGroup>
 
 </Project>

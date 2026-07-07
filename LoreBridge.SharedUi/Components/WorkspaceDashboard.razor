@@ -1,0 +1,104 @@
+@using LoreBridge.Application.Workspaces
+@using LoreBridge.Core.Notes
+@using LoreBridge.Core.Workspaces
+@inject IWorkspaceService WorkspaceService
+
+<h1>LoreBridge</h1>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p>@errorMessage</p>
+}
+
+@if (isLoading)
+{
+    <p>Loading workspaces...</p>
+}
+else if (workspaces.Count == 0)
+{
+    <p>No workspaces are configured.</p>
+}
+else
+{
+    <section>
+        <h2>Workspaces</h2>
+        <label for="workspace-select">Workspace</label>
+        <select id="workspace-select" value="@selectedWorkspaceId" @onchange="OnWorkspaceChanged">
+            @foreach (var workspace in workspaces)
+            {
+                <option value="@workspace.WorkspaceId">@workspace.DisplayName</option>
+            }
+        </select>
+
+        @if (SelectedWorkspace is not null)
+        {
+            <p>@SelectedWorkspace.VaultRootPath</p>
+        }
+    </section>
+
+    @if (!string.IsNullOrWhiteSpace(selectedWorkspaceId))
+    {
+        <section>
+            <NoteSearch WorkspaceId="@selectedWorkspaceId" OnNoteSelected="OnNoteSelected" />
+        </section>
+
+        <section>
+            <NoteDetailPanel Note="@selectedNote" />
+        </section>
+
+        <section>
+            <CreateStagingNoteForm WorkspaceId="@selectedWorkspaceId" OnNoteCreated="OnNoteCreated" />
+        </section>
+
+        <section>
+            <ReviewQueue @key="reviewQueueVersion" WorkspaceId="@selectedWorkspaceId" />
+        </section>
+    }
+}
+
+@code {
+    private readonly List<WorkspaceSummary> workspaces = [];
+    private bool isLoading = true;
+    private string? errorMessage;
+    private string? selectedWorkspaceId;
+    private NoteDetail? selectedNote;
+    private int reviewQueueVersion;
+
+    private WorkspaceSummary? SelectedWorkspace =>
+        workspaces.FirstOrDefault(workspace => workspace.WorkspaceId == selectedWorkspaceId);
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            var configuredWorkspaces = await WorkspaceService.GetWorkspacesAsync();
+            workspaces.AddRange(configuredWorkspaces);
+            selectedWorkspaceId = workspaces.FirstOrDefault()?.WorkspaceId;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+
+    private void OnWorkspaceChanged(ChangeEventArgs args)
+    {
+        selectedWorkspaceId = args.Value?.ToString();
+        selectedNote = null;
+        reviewQueueVersion++;
+    }
+
+    private void OnNoteSelected(NoteDetail note)
+    {
+        selectedNote = note;
+    }
+
+    private void OnNoteCreated(CreateNoteResult result)
+    {
+        reviewQueueVersion++;
+    }
+}

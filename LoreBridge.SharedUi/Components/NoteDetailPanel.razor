@@ -1,0 +1,41 @@
+@using LoreBridge.Core.Notes
+
+<h2>Note Detail</h2>
+
+@if (Note is null)
+{
+    <p>Select a note to view details.</p>
+}
+else
+{
+    <article>
+        <h3>@Note.Title</h3>
+        <p>@Note.RelativePath</p>
+        <p>@Note.NoteId</p>
+
+        @if (Note.Tags.Count > 0)
+        {
+            <p>Tags: @string.Join(", ", Note.Tags)</p>
+        }
+
+        @if (Note.Frontmatter.Count > 0)
+        {
+            <h4>Frontmatter</h4>
+            <dl>
+                @foreach (var item in Note.Frontmatter)
+                {
+                    <dt>@item.Key</dt>
+                    <dd>@item.Value</dd>
+                }
+            </dl>
+        }
+
+        <h4>Markdown</h4>
+        <pre>@Note.Markdown</pre>
+    </article>
+}
+
+@code {
+    [Parameter]
+    public NoteDetail? Note { get; set; }
+}
