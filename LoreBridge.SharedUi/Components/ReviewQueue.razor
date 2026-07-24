@@ -1,85 +1,83 @@
 @using LoreBridge.Application.Review
 @using LoreBridge.Core.Review
 @inject IReviewService ReviewService
-
-<h2>Review Queue</h2>
-
-<button type="button" @onclick="LoadReviewQueueAsync" disabled="@isLoading">Refresh</button>
+@inject NavigationManager Navigation
 
 @if (!string.IsNullOrWhiteSpace(errorMessage))
 {
-    <p>@errorMessage</p>
+    <div class="alert error">@errorMessage</div>
 }
-
-@if (isLoading)
+else if (isLoading)
 {
-    <p>Loading review queue...</p>
+    <p class="muted">Loading review queue...</p>
 }
 else if (items.Count == 0)
 {
-    <p>No review items.</p>
+    <div class="empty-state compact">
+        <h3>Queue clear</h3>
+        <p>There are no staging notes waiting for review.</p>
+    </div>
+}
+else if (Compact)
+{
+    <div class="review-list">
+        @foreach (var item in VisibleItems)
+        {
+            <button type="button" @onclick="() => OpenItem(item)">
+                <span class="review-icon" aria-hidden="true">◇</span>
+                <span><strong>@item.Title</strong><small>@item.SourceRelativePath</small></span>
+                <span class="badge warning">Needs review</span>
+            </button>
+        }
+    </div>
 }
 else
 {
-    <table>
-        <thead>
-            <tr>
-                <th>Title</th>
-                <th>Status</th>
-                <th>Source</th>
-                <th>Created</th>
-            </tr>
-        </thead>
-        <tbody>
-            @foreach (var item in items)
-            {
-                <tr>
-                    <td>@item.Title</td>
-                    <td>@item.ReviewStatus</td>
-                    <td>@item.SourceRelativePath</td>
-                    <td>@item.CreatedUtc.ToLocalTime()</td>
-                </tr>
-            }
-        </tbody>
-    </table>
+    <div class="table-wrap">
+        <table class="data-table">
+            <thead><tr><th>Title</th><th>Status</th><th>Source</th><th>Created</th></tr></thead>
+            <tbody>
+                @foreach (var item in VisibleItems)
+                {
+                    <tr @onclick="() => OpenItem(item)" tabindex="0">
+                        <td><strong>@item.Title</strong></td>
+                        <td><span class="badge warning">@item.ReviewStatus.Replace('_', ' ')</span></td>
+                        <td class="path-cell">@item.SourceRelativePath</td>
+                        <td>@item.CreatedUtc.ToLocalTime().ToString("MMM d, yyyy")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
 }
 
 @code {
-    [Parameter]
-    public string WorkspaceId { get; set; } = string.Empty;
+    [Parameter, EditorRequired] public string WorkspaceId { get; set; } = string.Empty;
+    [Parameter] public bool Compact { get; set; }
+    [Parameter] public int? ItemLimit { get; set; }
+    [Parameter] public EventCallback<int> OnCountChanged { get; set; }
 
     private readonly List<ReviewItem> items = [];
     private string? errorMessage;
     private bool isLoading;
+    private IEnumerable<ReviewItem> VisibleItems => ItemLimit is > 0 ? items.Take(ItemLimit.Value) : items;
 
-    protected override async Task OnParametersSetAsync()
-    {
-        await LoadReviewQueueAsync();
-    }
+    protected override async Task OnParametersSetAsync() => await LoadReviewQueueAsync();
 
     private async Task LoadReviewQueueAsync()
     {
-        if (string.IsNullOrWhiteSpace(WorkspaceId))
-        {
-            return;
-        }
-
+        if (string.IsNullOrWhiteSpace(WorkspaceId)) return;
         isLoading = true;
         errorMessage = null;
         items.Clear();
-
         try
         {
-            var reviewItems = await ReviewService.GetReviewQueueAsync(WorkspaceId);
-            items.AddRange(reviewItems);
+            items.AddRange((await ReviewService.GetReviewQueueAsync(WorkspaceId)).OrderByDescending(item => item.CreatedUtc));
+            await OnCountChanged.InvokeAsync(items.Count);
         }
-        catch (Exception ex)
-        {
-            errorMessage = ex.Message;
-        }
-        finally
-        {
-            isLoading = false;
-        }
+        catch (Exception ex) { errorMessage = ex.Message; }
+        finally { isLoading = false; }
     }
+
+    private void OpenItem(ReviewItem item) => Navigation.NavigateTo($"/notes/{Uri.EscapeDataString(item.SourceNoteId)}");
 }

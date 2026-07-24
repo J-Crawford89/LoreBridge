@@ -2,83 +2,75 @@
 @using LoreBridge.Core.Notes
 @inject INoteService NoteService
 
-<h2>Create Staging Note</h2>
+<div class="form-stack">
+    <div class="field-group">
+        <label for="staging-title">Title <span>Required</span></label>
+        <input id="staging-title" class="text-input" @bind="title" placeholder="A clear, descriptive title" />
+    </div>
 
-<div>
-    <label for="staging-title">Title</label>
-    <input id="staging-title" @bind="title" />
+    <div class="field-group">
+        <label for="staging-tags">Tags <span>Comma-separated</span></label>
+        <input id="staging-tags" class="text-input" @bind="tagsText" placeholder="arkellion, npc, idea" />
+        <small>Tags help connect this note to related material.</small>
+    </div>
+
+    <div class="field-group">
+        <label for="staging-markdown">Content <span>Markdown</span></label>
+        <textarea id="staging-markdown" class="text-area" @bind="markdown" placeholder="Write your note here..."></textarea>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="alert @(hasError ? "error" : "success")">@message</div>
+    }
+
+    <div class="form-actions">
+        <button class="button primary" type="button" @onclick="CreateAsync" disabled="@isCreating">
+            @(isCreating ? "Creating..." : "Create staging note")
+        </button>
+    </div>
 </div>
-
-<div>
-    <label for="staging-tags">Tags</label>
-    <input id="staging-tags" @bind="tagsText" />
-</div>
-
-<div>
-    <label for="staging-markdown">Markdown</label>
-    <textarea id="staging-markdown" @bind="markdown"></textarea>
-</div>
-
-<button type="button" @onclick="CreateAsync" disabled="@isCreating">Create</button>
-
-@if (!string.IsNullOrWhiteSpace(message))
-{
-    <p>@message</p>
-}
 
 @code {
-    [Parameter]
-    public string WorkspaceId { get; set; } = string.Empty;
-
-    [Parameter]
-    public EventCallback<CreateNoteResult> OnNoteCreated { get; set; }
+    [Parameter, EditorRequired] public string WorkspaceId { get; set; } = string.Empty;
+    [Parameter] public EventCallback<CreateNoteResult> OnNoteCreated { get; set; }
 
     private string title = string.Empty;
     private string tagsText = string.Empty;
     private string markdown = string.Empty;
     private string? message;
     private bool isCreating;
+    private bool hasError;
 
     private async Task CreateAsync()
     {
-        if (string.IsNullOrWhiteSpace(WorkspaceId))
-        {
-            return;
-        }
-
+        if (string.IsNullOrWhiteSpace(WorkspaceId)) return;
         if (string.IsNullOrWhiteSpace(title))
         {
             message = "Title is required.";
+            hasError = true;
             return;
         }
 
         isCreating = true;
         message = null;
-
+        hasError = false;
         try
         {
-            var request = new CreateStagingNoteRequest(
+            var result = await NoteService.CreateStagingNoteAsync(new CreateStagingNoteRequest(
                 WorkspaceId,
                 title,
                 markdown,
-                tagsText
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .ToList());
-
-            var result = await NoteService.CreateStagingNoteAsync(request);
+                tagsText.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList()));
             message = $"Created {result.RelativePath}.";
-            title = string.Empty;
-            tagsText = string.Empty;
-            markdown = string.Empty;
+            title = tagsText = markdown = string.Empty;
             await OnNoteCreated.InvokeAsync(result);
         }
         catch (Exception ex)
         {
             message = ex.Message;
+            hasError = true;
         }
-        finally
-        {
-            isCreating = false;
-        }
+        finally { isCreating = false; }
     }
 }

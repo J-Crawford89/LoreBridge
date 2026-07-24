@@ -1,0 +1,64 @@
+@page "/browse"
+@using LoreBridge.Application.Vault
+@using LoreBridge.Core.Vault
+@using LoreBridge.SharedUi.Components
+@using LoreBridge.SharedUi.State
+@implements IDisposable
+@inject IVaultService VaultService
+@inject WorkspaceState WorkspaceState
+
+<PageTitle>Browse Vault · LoreBridge</PageTitle>
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Vault explorer</p>
+        <h1>Browse</h1>
+        <p>Explore the complete Markdown note structure for the active workspace.</p>
+    </div>
+</header>
+
+<section class="card browse-card">
+    @if (!string.IsNullOrWhiteSpace(errorMessage))
+    {
+        <div class="alert error">@errorMessage</div>
+    }
+    else if (isLoading)
+    {
+        <p class="muted">Loading vault structure...</p>
+    }
+    else if (snapshot is not null)
+    {
+        <div class="browse-summary">
+            <span class="folder-mark" aria-hidden="true">▰</span>
+            <span><strong>@WorkspaceState.SelectedWorkspace?.DisplayName</strong><small>@snapshot.TotalNotes articles</small></span>
+        </div>
+        <VaultFolderTree Folder="snapshot.RootFolder" IsRoot="true" />
+    }
+</section>
+
+@code {
+    private VaultSnapshot? snapshot;
+    private bool isLoading = true;
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        WorkspaceState.Changed += OnWorkspaceChanged;
+        await WorkspaceState.InitializeAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        snapshot = null;
+        errorMessage = null;
+        if (string.IsNullOrWhiteSpace(WorkspaceState.SelectedWorkspaceId)) { isLoading = false; return; }
+        isLoading = true;
+        try { snapshot = await VaultService.GetSnapshotAsync(WorkspaceState.SelectedWorkspaceId); }
+        catch (Exception ex) { errorMessage = ex.Message; }
+        finally { isLoading = false; }
+    }
+
+    private void OnWorkspaceChanged() => InvokeAsync(LoadAsync);
+    public void Dispose() => WorkspaceState.Changed -= OnWorkspaceChanged;
+}

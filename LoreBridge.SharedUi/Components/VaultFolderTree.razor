@@ -1,0 +1,41 @@
+@using LoreBridge.Core.Vault
+@inject NavigationManager Navigation
+
+<ul class="vault-tree @(IsRoot ? "vault-tree-root" : null)">
+    @foreach (var folder in Folder.Folders)
+    {
+        <li>
+            <details open="@(IsRoot)">
+                <summary><span aria-hidden="true">▸</span> @folder.Name <small>@CountNotes(folder)</small></summary>
+                <VaultFolderTree Folder="folder" />
+            </details>
+        </li>
+    }
+    @foreach (var note in Folder.Notes)
+    {
+        <li>
+            <button type="button" class="tree-note" @onclick="() => OpenNote(note.NoteId)">
+                <span aria-hidden="true">◇</span>
+                <span>@note.Title</span>
+                @if (!string.IsNullOrWhiteSpace(note.Status))
+                {
+                    <small>@note.Status</small>
+                }
+            </button>
+        </li>
+    }
+</ul>
+
+@code {
+    [Parameter, EditorRequired]
+    public VaultFolderNode Folder { get; set; } = default!;
+
+    [Parameter]
+    public bool IsRoot { get; set; }
+
+    private void OpenNote(string noteId) =>
+        Navigation.NavigateTo($"/notes/{Uri.EscapeDataString(noteId)}");
+
+    private static int CountNotes(VaultFolderNode folder) =>
+        folder.Notes.Count + folder.Folders.Sum(CountNotes);
+}

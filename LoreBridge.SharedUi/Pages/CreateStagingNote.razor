@@ -1,0 +1,34 @@
+@page "/staging/create"
+@using LoreBridge.Core.Notes
+@using LoreBridge.SharedUi.Components
+@using LoreBridge.SharedUi.State
+@inject WorkspaceState WorkspaceState
+@inject NavigationManager Navigation
+
+<PageTitle>Create Staging Note · LoreBridge</PageTitle>
+
+<header class="page-header narrow-header">
+    <div>
+        <p class="eyebrow">Capture an idea</p>
+        <h1>Create staging note</h1>
+        <p>Add unreviewed material safely. Canon is never modified from this form.</p>
+    </div>
+</header>
+
+<section class="card form-card">
+    @if (string.IsNullOrWhiteSpace(WorkspaceState.SelectedWorkspaceId))
+    {
+        <p class="muted">Select a workspace before creating a note.</p>
+    }
+    else
+    {
+        <CreateStagingNoteForm WorkspaceId="@WorkspaceState.SelectedWorkspaceId" OnNoteCreated="OnCreated" />
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync() => await WorkspaceState.InitializeAsync();
+
+    private void OnCreated(CreateNoteResult result) =>
+        Navigation.NavigateTo($"/notes/{Uri.EscapeDataString(result.NoteId)}");
+}

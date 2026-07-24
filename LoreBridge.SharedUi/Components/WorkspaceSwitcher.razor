@@ -1,0 +1,68 @@
+@using LoreBridge.SharedUi.State
+@implements IDisposable
+@inject WorkspaceState WorkspaceState
+@inject NavigationManager Navigation
+
+<div class="workspace-switcher">
+    <button class="workspace-trigger" type="button" @onclick="Toggle" aria-expanded="@isOpen">
+        <span class="workspace-label">Workspace</span>
+        <strong>@(WorkspaceState.SelectedWorkspace?.DisplayName ?? "No workspace")</strong>
+        <span class="chevron" aria-hidden="true">⌄</span>
+    </button>
+
+    @if (isOpen)
+    {
+        <div class="workspace-menu" role="menu">
+            <div class="workspace-menu-heading">Switch workspace</div>
+            @foreach (var workspace in WorkspaceState.Workspaces)
+            {
+                var isSelected = workspace.WorkspaceId == WorkspaceState.SelectedWorkspaceId;
+                <button class="workspace-option @(isSelected ? "selected" : null)"
+                        type="button"
+                        role="menuitem"
+                        @onclick="() => SelectWorkspace(workspace.WorkspaceId)">
+                    <span class="workspace-avatar">@GetInitials(workspace.DisplayName)</span>
+                    <span>
+                        <strong>@workspace.DisplayName</strong>
+                        <small>@workspace.VaultRootPath</small>
+                    </span>
+                    @if (isSelected)
+                    {
+                        <span class="selection-mark" aria-label="Selected">✓</span>
+                    }
+                </button>
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private bool isOpen;
+
+    protected override async Task OnInitializedAsync()
+    {
+        WorkspaceState.Changed += OnStateChanged;
+        await WorkspaceState.InitializeAsync();
+    }
+
+    private void Toggle() => isOpen = !isOpen;
+
+    private void SelectWorkspace(string workspaceId)
+    {
+        isOpen = false;
+        if (WorkspaceState.Select(workspaceId))
+        {
+            Navigation.NavigateTo("/");
+        }
+    }
+
+    private static string GetInitials(string name)
+    {
+        var words = name.Split(' ', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+        return string.Concat(words.Take(2).Select(word => char.ToUpperInvariant(word[0])));
+    }
+
+    private void OnStateChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => WorkspaceState.Changed -= OnStateChanged;
+}

@@ -8,6 +8,8 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="AngleSharp" Version="1.5.0" />
+    <PackageReference Include="bunit" Version="2.7.2" />
     <PackageReference Include="coverlet.collector" Version="10.0.1">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -24,6 +26,8 @@
     <ProjectReference Include="..\LoreBridge.Application\LoreBridge.Application.csproj" />
     <ProjectReference Include="..\LoreBridge.Core\LoreBridge.Core.csproj" />
     <ProjectReference Include="..\LoreBridge.Infrastructure\LoreBridge.Infrastructure.csproj" />
+    <ProjectReference Include="..\LoreBridge.McpHost\LoreBridge.McpHost.csproj" />
+    <ProjectReference Include="..\LoreBridge.SharedUi\LoreBridge.SharedUi.csproj" />
   </ItemGroup>
 
   <ItemGroup>

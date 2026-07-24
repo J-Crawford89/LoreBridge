@@ -1,0 +1,144 @@
+@using LoreBridge.Application.Notes
+@using LoreBridge.Core.Notes
+@using LoreBridge.SharedUi.State
+@implements IDisposable
+@inject INoteService NoteService
+@inject WorkspaceState WorkspaceState
+@inject NavigationManager Navigation
+
+<div class="global-search">
+    <span class="search-icon" aria-hidden="true">⌕</span>
+    <input value="@query"
+           @oninput="OnInput"
+           @onkeydown="OnKeyDown"
+           placeholder="Search this vault..."
+           aria-label="Search notes"
+           autocomplete="off" />
+    @if (isSearching)
+    {
+        <span class="search-progress" aria-label="Searching"></span>
+    }
+
+    @if (showResults)
+    {
+        <div class="search-results">
+            @if (!string.IsNullOrWhiteSpace(errorMessage))
+            {
+                <div class="search-message error">@errorMessage</div>
+            }
+            else if (results.Count == 0 && !isSearching)
+            {
+                <div class="search-message">No notes match “@query”.</div>
+            }
+            else
+            {
+                @foreach (var result in results)
+                {
+                    <button type="button" class="search-result" @onclick="() => OpenNote(result)">
+                        <span>
+                            <strong>@result.Title</strong>
+                            <small>@result.RelativePath</small>
+                        </span>
+                        @if (!string.IsNullOrWhiteSpace(result.Type))
+                        {
+                            <span class="badge">@result.Type</span>
+                        }
+                    </button>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private readonly List<NoteSearchResult> results = [];
+    private CancellationTokenSource? searchCancellation;
+    private string query = string.Empty;
+    private string? errorMessage;
+    private bool isSearching;
+    private bool showResults;
+
+    protected override async Task OnInitializedAsync()
+    {
+        WorkspaceState.Changed += OnWorkspaceChanged;
+        await WorkspaceState.InitializeAsync();
+    }
+
+    private async Task OnInput(ChangeEventArgs args)
+    {
+        query = args.Value?.ToString() ?? string.Empty;
+        searchCancellation?.Cancel();
+        searchCancellation?.Dispose();
+        searchCancellation = new CancellationTokenSource();
+
+        results.Clear();
+        errorMessage = null;
+        showResults = !string.IsNullOrWhiteSpace(query);
+        if (!showResults || string.IsNullOrWhiteSpace(WorkspaceState.SelectedWorkspaceId))
+        {
+            isSearching = false;
+            return;
+        }
+
+        var cancellationToken = searchCancellation.Token;
+        isSearching = true;
+        try
+        {
+            await Task.Delay(250, cancellationToken);
+            var matches = await NoteService.SearchAsync(
+                new NoteSearchRequest(WorkspaceState.SelectedWorkspaceId, query, null, null, 8),
+                cancellationToken);
+            results.AddRange(matches);
+        }
+        catch (OperationCanceledException)
+        {
+            return;
+        }
+        catch (Exception ex)
+        {
+            errorMessage = ex.Message;
+        }
+        finally
+        {
+            if (!cancellationToken.IsCancellationRequested)
+            {
+                isSearching = false;
+            }
+        }
+    }
+
+    private void OnKeyDown(KeyboardEventArgs args)
+    {
+        if (args.Key == "Escape")
+        {
+            showResults = false;
+        }
+        else if (args.Key == "Enter" && results.Count > 0)
+        {
+            OpenNote(results[0]);
+        }
+    }
+
+    private void OpenNote(NoteSearchResult note)
+    {
+        showResults = false;
+        query = string.Empty;
+        Navigation.NavigateTo($"/notes/{Uri.EscapeDataString(note.NoteId)}");
+    }
+
+    private void OnWorkspaceChanged()
+    {
+        searchCancellation?.Cancel();
+        query = string.Empty;
+        results.Clear();
+        showResults = false;
+        InvokeAsync(StateHasChanged);
+    }
+
+    public void Dispose()
+    {
+        WorkspaceState.Changed -= OnWorkspaceChanged;
+        searchCancellation?.Cancel();
+        searchCancellation?.Dispose();
+    }
+}

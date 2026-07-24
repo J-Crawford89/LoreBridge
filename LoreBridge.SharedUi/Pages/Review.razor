@@ -1,0 +1,30 @@
+@page "/review"
+@using LoreBridge.SharedUi.Components
+@using LoreBridge.SharedUi.State
+@inject WorkspaceState WorkspaceState
+
+<PageTitle>Review Queue · LoreBridge</PageTitle>
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Editorial workflow</p>
+        <h1>Review queue</h1>
+        <p>Staging notes that are ready for a human decision.</p>
+    </div>
+    <a class="button primary" href="/staging/create">Create staging note</a>
+</header>
+
+<section class="card">
+    @if (string.IsNullOrWhiteSpace(WorkspaceState.SelectedWorkspaceId))
+    {
+        <p class="muted">Select a workspace to view its review queue.</p>
+    }
+    else
+    {
+        <ReviewQueue WorkspaceId="@WorkspaceState.SelectedWorkspaceId" />
+    }
+</section>
+
+@code {
+    protected override async Task OnInitializedAsync() => await WorkspaceState.InitializeAsync();
+}

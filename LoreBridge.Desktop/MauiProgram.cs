@@ -1,6 +1,8 @@
 using LoreBridge.Infrastructure.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using LoreBridge.SharedUi.Markdown;
+using LoreBridge.SharedUi.State;
 
 namespace LoreBridge.Desktop
 {
@@ -18,6 +20,8 @@ namespace LoreBridge.Desktop
 
             builder.Configuration.AddJsonFile("appsettings.local.json", optional: true, reloadOnChange: false);
             builder.Services.AddLoreBridgeInfrastructure(builder.Configuration);
+            builder.Services.AddSingleton<WorkspaceState>();
+            builder.Services.AddSingleton<NoteMarkdownRenderer>();
 
             builder.Services.AddMauiBlazorWebView();
 

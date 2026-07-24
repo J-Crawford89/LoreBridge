@@ -1,10 +1,12 @@
 using LoreBridge.Application.Notes;
 using LoreBridge.Application.Review;
 using LoreBridge.Application.Workspaces;
+using LoreBridge.Application.Vault;
 using LoreBridge.Infrastructure.Configuration;
 using LoreBridge.Infrastructure.Notes;
 using LoreBridge.Infrastructure.Review;
 using LoreBridge.Infrastructure.Workspaces;
+using LoreBridge.Infrastructure.Vault;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -36,6 +38,7 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<FileSystemNoteService>();
         services.AddSingleton<INoteService>(provider => provider.GetRequiredService<FileSystemNoteService>());
         services.AddSingleton<IReviewService, FileSystemReviewService>();
+        services.AddSingleton<IVaultService, FileSystemVaultService>();
 
         return services;
     }

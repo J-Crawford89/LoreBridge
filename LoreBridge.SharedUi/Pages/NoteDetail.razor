@@ -1,0 +1,96 @@
+@page "/notes/{NoteId}"
+@using LoreBridge.Application.Notes
+@using LoreBridge.Application.Vault
+@using LoreBridge.Core.Notes
+@using LoreBridge.Core.Vault
+@using LoreBridge.SharedUi.Markdown
+@using LoreBridge.SharedUi.State
+@inject INoteService NoteService
+@inject IVaultService VaultService
+@inject NoteMarkdownRenderer MarkdownRenderer
+@inject WorkspaceState WorkspaceState
+
+<PageTitle>@(note is null ? "Note" : note.Title) · LoreBridge</PageTitle>
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <div class="alert error">@errorMessage</div>
+}
+else if (isLoading)
+{
+    <div class="loading-card">Loading note...</div>
+}
+else if (note is not null)
+{
+    <header class="page-header note-header">
+        <div>
+            <p class="eyebrow">@GetMetadata("type", "Vault note")</p>
+            <h1>@note.Title</h1>
+            <p class="note-path">@note.RelativePath</p>
+        </div>
+        <span class="badge status-badge">@GetMetadata("status", "Unspecified status")</span>
+    </header>
+
+    <div class="note-layout">
+        <article class="card markdown-body">
+            @((MarkupString)renderedMarkdown)
+        </article>
+        <aside class="card note-metadata">
+            <h2>Note details</h2>
+            <dl>
+                <dt>Note ID</dt><dd>@note.NoteId</dd>
+                <dt>Last updated</dt><dd>@note.LastModifiedUtc.ToLocalTime().ToString("MMM d, yyyy 'at' h:mm tt")</dd>
+                @foreach (var item in note.Frontmatter.Where(item => item.Key is not "id" and not "title" and not "tags"))
+                {
+                    <dt>@item.Key</dt><dd>@item.Value</dd>
+                }
+            </dl>
+            @if (note.Tags.Count > 0)
+            {
+                <h3>Tags</h3>
+                <div class="tag-list">
+                    @foreach (var tag in note.Tags) { <span>@tag</span> }
+                </div>
+            }
+        </aside>
+    </div>
+}
+
+@code {
+    [Parameter] public string NoteId { get; set; } = string.Empty;
+
+    private LoreBridge.Core.Notes.NoteDetail? note;
+    private VaultSnapshot? snapshot;
+    private string renderedMarkdown = string.Empty;
+    private string? errorMessage;
+    private bool isLoading = true;
+
+    protected override async Task OnParametersSetAsync()
+    {
+        await WorkspaceState.InitializeAsync();
+        await LoadAsync();
+    }
+
+    private async Task LoadAsync()
+    {
+        note = null;
+        errorMessage = null;
+        if (string.IsNullOrWhiteSpace(WorkspaceState.SelectedWorkspaceId)) { isLoading = false; return; }
+        isLoading = true;
+        try
+        {
+            var decodedId = Uri.UnescapeDataString(NoteId);
+            var noteTask = NoteService.GetNoteAsync(WorkspaceState.SelectedWorkspaceId, decodedId);
+            var snapshotTask = VaultService.GetSnapshotAsync(WorkspaceState.SelectedWorkspaceId);
+            await Task.WhenAll(noteTask, snapshotTask);
+            note = await noteTask;
+            snapshot = await snapshotTask;
+            renderedMarkdown = MarkdownRenderer.Render(note, snapshot.Notes);
+        }
+        catch (Exception ex) { errorMessage = ex.Message; }
+        finally { isLoading = false; }
+    }
+
+    private string GetMetadata(string key, string fallback) =>
+        note?.Frontmatter.TryGetValue(key, out var value) == true && !string.IsNullOrWhiteSpace(value) ? value : fallback;
+}

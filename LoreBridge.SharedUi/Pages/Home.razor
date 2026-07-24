@@ -1,0 +1,30 @@
+@page "/"
+@using LoreBridge.SharedUi.Components
+@using LoreBridge.SharedUi.State
+@implements IDisposable
+@inject WorkspaceState WorkspaceState
+
+<PageTitle>Dashboard · LoreBridge</PageTitle>
+
+<header class="page-header">
+    <div>
+        <p class="eyebrow">Workspace dashboard</p>
+        <h1>@(WorkspaceState.SelectedWorkspace?.DisplayName ?? "LoreBridge")</h1>
+        <p>Everything happening across your vault, at a glance.</p>
+    </div>
+    <a class="button primary" href="/staging/create">Create staging note</a>
+</header>
+
+<WorkspaceDashboard />
+
+@code {
+    protected override async Task OnInitializedAsync()
+    {
+        WorkspaceState.Changed += OnWorkspaceChanged;
+        await WorkspaceState.InitializeAsync();
+    }
+
+    private void OnWorkspaceChanged() => InvokeAsync(StateHasChanged);
+
+    public void Dispose() => WorkspaceState.Changed -= OnWorkspaceChanged;
+}
